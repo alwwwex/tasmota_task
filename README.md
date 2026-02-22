@@ -5,7 +5,7 @@ This repository contains a complete, working solution for a 3-part assignment:
 1. **Custom Tasmota sensor driver** for a BME280 (I²C) on ESP8266/ESP32  
 2. **Berry automation script** that monitors the sensor, generates alerts, and logs events with rotation  
 3. **Flexible Python CLI tool** for discovery/provisioning/testing with different connectivity options and with a JSON report
-
+4. In `Binaries` folder could be found `firmware.bin` with compiled Tasmota32 + Custom sensor firmware. Its wrong way of using git, but makes this-time solution easier to check.
 The implementation was validated on **Tasmota 15.2.0.4 (tasmota32)** with a **BME280 at I²C address `0x76`**.
 
 ---
@@ -77,6 +77,30 @@ The driver therefore uses **short reads (Variant A)** to read raw P/T/H register
 
 ### Wiring diagram
 
+For ESP32 (DevKit V1):
+```text
++-----------------------+           +-----------------------+
+|   BME280 (Sensor)     |           |   ESP32 DevKit V1     |
+|                       |           |                       |
+|          [ VIN ] <----|-----------|---- [ 3.3V ]          |
+|          [ GND ] <----|-----------|---- [ GND  ]          |
+|          [ SCL ] <----|-----------|---- [ GPIO 22 ]       |
+|          [ SDA ] <----|-----------|---- [ GPIO 21 ]       |
++-----------------------+           +-----------------------+
+```
+
+For ESP8266:
+```text
++-----------------------+           +-----------------------+
+|   BME280 (Sensor)     |           |   ESP8266 (NodeMCU)   |
+|                       |           |                       |
+|          [ VIN ] <----|-----------|---- [ 3.3V ]          |
+|          [ GND ] <----|-----------|---- [ GND  ]          |
+|          [ SCL ] <----|-----------|---- [ GPIO 5 / D1 ]   |
+|          [ SDA ] <----|-----------|---- [ GPIO 4 / D2 ]   |
++-----------------------+           +-----------------------+
+```
+
 ### Connection Table
 | BME280 | ESP32 (DevKit V1) | ESP8266 |
 | :--- | :--- | :--- |
@@ -93,7 +117,6 @@ The driver therefore uses **short reads (Variant A)** to read raw P/T/H register
 - Git installed
 
 ### Step-by-Step Instructions
-
 1. **Install Visual Studio Code**  
    Download and install from official site:  
    https://code.visualstudio.com/
@@ -124,62 +147,85 @@ The driver therefore uses **short reads (Variant A)** to read raw P/T/H register
 6. **Copy custom driver file**  
    `xsns_200_customsensor.ino` must be copied to `tasmota\tasmota_xsns_sensor\`
    
-7. **Disable standart BME driver implementation**  
+7. **Disable standard BME driver implementation**  
    In case of ESP32 open `tasmota\include\tasmota_configurations_ESP32.h` or 
    `tasmota\include\tasmota_configurations.h` in case of ESP8266 in editor and search for lines `#define USE_BMP` and `#define USE_BME68X`
+   
    Put `//` comment lines before those lines to disable it. Example: `#define USE_BMP` to `//#define USE_BMP`
+   
    Save changes.
+   
    In case of troubles check for `tasmota_configurations_ESP32.h` in `driver` folder for example. I'm not recommeding to replace the file by
    this one due possible changes in the new Tasmota version or your own custom project changes.
 
 8. **Add defenition for custom driver**  
    Open `tasmota\tasmota_xx2c_global\xsns_interface.ino` in editor and put next lines after first comment section:
-   ```#ifdef USE_CUSTOM_SENSOR
+   ```
+   #ifdef USE_CUSTOM_SENSOR
    extern bool Xsns200(uint32_t function);
-   #endif```
+   #endif
+   ```
    In `xsns_func_ptr` find the last sensor definition. For example:
-   ```#ifdef XSNS_127
+   ```
+   #ifdef XSNS_127
      &Xsns127
-   #endif```
+   #endif
+   ```
    Add defenition for custom sensor:
-   ```#ifdef XSNS_127
+   ```
+   #ifdef XSNS_127
      &Xsns127,
    #endif
 
    #ifdef USE_CUSTOM_SENSOR
      &Xsns200
-   #endif```
+   #endif
+   ```
    Be carefully with `,` symbol for last and penultimate sensor.
 
    In `kXsnsList[]` find the last sensor definition. For example:
-   ```#ifdef XSNS_127
+   ```
+   #ifdef XSNS_127
      XSNS_127
-   #endif```
+   #endif
+   ```
    Add defenition for custom sensor:
-   ```#ifdef XSNS_127
+   ```
+   #ifdef XSNS_127
      XSNS_127,
    #endif
 
    #ifdef USE_CUSTOM_SENSOR
      200
-   #endif```
+   #endif
+   ```
    Be carefully with `,` symbol for last and penultimate sensor.
+   
    Save changes.
+   
    In case of troubles check for `xsns_interface.ino` in `driver` folder for example. I'm not recommeding to replace the file by
    this one due possible changes in the new Tasmota version or your own custom project changes.
 
 9. **Select build environment and build the firmware**
+
    Click PlatformIO icon on the left sidebar (alien head)
+   
    Go to Project Tasks → `esp8266` or `esp32` section
+   
    Select preferable option or use common popular one like `tasmota` or `tasmota32`
+   
    Click Build (checkmark icon) next to chosen environment
 
 10. **Optional. Find the compiled firmware**
+
    After successful build:
-   ```.pio/build/tasmota/firmware.bin          ← main firmware
-   .pio/build/tasmota/firmware.factory.bin  ← sometimes for initial flash```
+   ```
+   .pio/build/tasmota/firmware.bin          ← main firmware
+   .pio/build/tasmota/firmware.factory.bin  ← sometimes for initial flash
+   ```
 
 11. **Flash the firmware to your device**
+
    A. PlatformIO direct upload (serial)
      Connect board via USB
      Put board into flash mode (usually hold BOOT button while connecting or pressing RESET)
@@ -192,6 +238,7 @@ The driver therefore uses **short reads (Variant A)** to read raw P/T/H register
    C. using esptool (manual) or Tasmota web tool
 
 ## How to Verify
+
 - **Auto detection**: After I2C pins activation and restarting Tasmota, driver must find the sensor automaticaly
 - **Serial log**: should show sensor detection + periodic reads
 - **MQTT**: `tele/<Topic>/SENSOR` should contain `CustomBME280` with numeric values
@@ -225,8 +272,34 @@ Features:
 - Additionally:
   - protection against **double start**
 
+## How to use
+- Open file in editor `customsensor_monitor.be` and modify the User configs if needed
+  - `SENSOR_NAME` must contain same name as custom sensor
+  - `BASE_TOPIC` should be same as Tasmota name. 
+  Berry can read this value automatically, but I made this value as constant for less resource consuming.
+  Or user can define own topic for Berry script output.
+- Connect to Tasmota device and open web UI
+- In main menu to to `Tools` and `Manage File system`
+- Select `customsensor_monitor.be` file and click `Upload` button
+- Options to start the Berry script:
+  - Auto start script using autoexec script
+  Upload to Tasmota flash file `autoexec.be` from `Berry` folder or if file already existing, add new line:
+```
+load("customsensor_monitor.be")
+```
+  `customsensor_monitor.be` will be runned after each Tasmota restart automatically
+  - Manual run
+  From Tasmota main menu, open `Tools` and `Berry Scripting console`
+  Write next command and click `Run code`
+```
+load("customsensor_monitor.be")
+```
+- Check for alert log:
+  - Using same `Manage File system` open or download bme_alert.log
+  - Log file exists and does not exceed 100 entries (oldest trimmed)
+  - If file not existing, main script is not running or no alert was since first run
+
 ## How to Verify
-- Upload script using web UI
 - Check MQTT for:
   - periodic average output topic (repository-defined topic)
   - alert topic messages when thresholds are crossed
@@ -295,9 +368,11 @@ These libraries must be installed via `pip`.
 Open your terminal or command prompt and run the following command to install all necessary dependencies:
 
 ```bash
-pip install aiohttp requests paho-mqtt>=2.0.0 pyserial```
+pip install aiohttp requests paho-mqtt>=2.0.0 pyserial
+```
 
 ## Script usage
+
 ### 1. Discovery Arguments
 These attributes control how the tool finds Tasmota devices on the network.
 
@@ -337,11 +412,13 @@ These attributes are used to connect to the MQTT broker and validate sensor data
 
 Searching for Tasmota device in 192.168.1.x area, setting up WiFi credentials as *wifi-ssid* and *wifi-pass*, MQTT host as 192.168.1.100 with test_tasmota user and qwerty pass. Log in Python sonsole enabled.
 ```bash
-python mqtt_tester.py --provision-via http --cidr 192.168.1.0/24 --wifi-ssid *wifi-ssid* --wifi-password *wifi-pass* --mqtt-host 192.168.1.100 --mqtt-user test_tasmota --mqtt-password qwerty --log```
+python mqtt_tester.py --provision-via http --cidr 192.168.1.0/24 --wifi-ssid *wifi-ssid* --wifi-password *wifi-pass* --mqtt-host 192.168.1.100 --mqtt-user test_tasmota --mqtt-password qwerty --log
+```
 
 Searching for Tasmota device connected via USB, setting up WiFi credentials as *wifi-ssid* and *wifi-pass*, MQTT host as 192.168.1.100 with test_tasmota user and qwerty pass. Log in Python sonsole enabled.
 ```bash
-python mqtt_tester.py --provision-via serial --cidr 192.168.1.0/24 --wifi-ssid *wifi-ssid* --wifi-password *wifi-pass* --mqtt-host 192.168.1.100 --mqtt-user test_tasmota --mqtt-password qwerty --log```
+python mqtt_tester.py --provision-via serial --cidr 192.168.1.0/24 --wifi-ssid *wifi-ssid* --wifi-password *wifi-pass* --mqtt-host 192.168.1.100 --mqtt-user test_tasmota --mqtt-password qwerty --log
+```
 
 ## Technical Notes on Validation
 The tool performs a **Sanity Check** on all received sensor data. A test is marked as **PASSED** only if:
