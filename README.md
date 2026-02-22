@@ -134,12 +134,14 @@ For ESP8266:
    git clone https://github.com/arendst/Tasmota.git
    cd Tasmota```
    
-4. **Switch to a specific stable commit**  
+4. **Switch to a Development branch**  
    Switch to a specific stable commit or the latest development branch (as of Feb 2026 ≈ v15.3.x Susan)
 
-   ```git checkout development
+   ```
+   git checkout development
 	# or specific tag if needed:
-	# git checkout v15.3.0```
+	# git checkout v15.3.0
+   ```
 	
 5. **Open project in VS Code**  
    In VS Code: File → Open Folder... → select the Tasmota folder you just cloned
