@@ -27,13 +27,14 @@ The implementation was validated on **Tasmota 15.2.0.4 (tasmota32)** with a **BM
   - Additionally: supports **auto-start** and double start protection
 
 - **Python CLI tool** (`mqtt_tester.py`)
-  - Fast and reliable **async HTTP scan** (aiohttp) for Tasmota devices[^1]
-  - Provision WiFi/MQTT via **HTTP** or via **Serial** (and auto-detect for both of them)[^2]
+  - Fast and reliable **async HTTP scan** (aiohttp) for Tasmota devices *{1}*
+  - Provision WiFi/MQTT via **HTTP** or via **Serial** (and auto-detect for both of them) *{2}*
   - Subscribes to MQTT and validates **telemetry JSON format**
   - Outputs a **JSON report** and prints status/progress to console
   
-  [^1] I opted for Fast Async HTTP Discovery over mDNS/UDP scan because mDNS is typically deactivated in modern Tasmota builds and UDP is often filtered by routers. I can still implement the requested methods if necessary.
-  [^2] LAN provisioning is only effective if the device is already connected. For new devices in AP mode, Serial connectivity is essential as they are not yet reachable via the local network.
+  *{1}: I opted for Fast Async HTTP Discovery over mDNS/UDP scan because mDNS is typically deactivated in modern Tasmota builds and UDP is often filtered by routers. I can still implement the requested methods if necessary.*
+  
+  *{2}: LAN provisioning is only effective if the device is already connected. For new devices in AP mode, Serial connectivity is essential as they are not yet reachable via the local network.*
 
 ---
 
